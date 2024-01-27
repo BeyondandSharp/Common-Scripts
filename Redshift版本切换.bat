@@ -338,7 +338,7 @@ xcopy "%rs_path%\%_verR%\redshift" "%rsLoc%\%_verR%" /s /e /y
 :rsInstallEnd
 goto:eof
 :c4dInstall
-set i=%c4dV1%
+if !vers[%_s%]!==All set i=%c4dV1%
 :c4dInstallLoop
 set _ver=!vers[%i%]!
 call:addR !_ver!
@@ -363,8 +363,8 @@ goto:eof
 :houdiniInstall 
 call:getPersonal
 set i=%houdiniV1%
+if !vers[%_s%]!==All set _ver=!vers[%i%]!
 :houdiniInstallLoop
-set _ver=!vers[%i%]!
 for /f "delims=. tokens=1,2,*" %%l in ("!vers[%i%]!") do (
     set _ver=%%l.%%m
 )
@@ -379,13 +379,14 @@ set /a i+=1
 if !vers[%_s%]!==All set /a tmpa+=1
 if not !vers[%i%]!==All set /a tmpa+=1
 if %tmpa%==2 (
+    set _ver=!vers[%i%]!
     goto houdiniInstallLoop
 )
 goto:eof
 :mayaInstall
 set i=%mayaV1%
+if !vers[%_s%]!==All set _ver=!vers[%i%]!
 :mayaInstallLoop
-set _ver=!vers[%i%]!
 %rsLoc:~0,1%:
 cd "%rsLoc%\%_verR%\Plugins\Maya"
 set "mayaBatName=install_redshift4maya_%_ver%-64.bat"
@@ -397,6 +398,7 @@ set /a i+=1
 if !vers[%_s%]!==All set /a tmpa+=1
 if not !vers[%i%]!==All set /a tmpa+=1
 if %tmpa%==2 (
+    set _ver=!vers[%i%]!
     goto mayaInstallLoop
 )
 goto:eof
