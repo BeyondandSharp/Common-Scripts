@@ -51,9 +51,8 @@ call:rendererVerExtract
 call:choiceRendererVer
 ::去汉化
 set tmpa=0
-if %_type%==All if %_type%==C4D (
-	set /a tmpa+=1
-)
+if %_type%==All set /a tmpa+=1
+if %_type%==C4D set /a tmpa+=1
 if %_typeR%==Redshift set /a tmpa+=1
 if %tmpa%==2 call:dezh
 ::开始安装
@@ -340,7 +339,6 @@ goto:eof
 :c4dInstall
 if !vers[%_s%]!==All set i=%c4dV1%
 :c4dInstallLoop
-set _ver=!vers[%i%]!
 call:addR !_ver!
 for /f "tokens=2*" %%a in ('reg query "HKEY_LOCAL_MACHINE\SOFTWARE\Maxon\Maxon Cinema 4D %_ver%" /v "Location" ^| findstr "Location"') do (
     set _loc=%%b
@@ -357,6 +355,7 @@ set /a i+=1
 if !vers[%_s%]!==All set /a tmpa+=1
 if not !vers[%i%]!==All set /a tmpa+=1
 if %tmpa%==2 (
+	set _ver=!vers[%i%]!
     goto c4dInstallLoop
 )
 goto:eof
@@ -390,8 +389,6 @@ if !vers[%_s%]!==All set _ver=!vers[%i%]!
 %rsLoc:~0,1%:
 cd "%rsLoc%\%_verR%\Plugins\Maya"
 set "mayaBatName=install_redshift4maya_%_ver%-64.bat"
-echo %mayaBatName%
-pause
 call %mayaBatName%
 set tmpa=0
 set /a i+=1
