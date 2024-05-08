@@ -50,11 +50,13 @@ $applyButton.Add_Click({ Invoke-Changes })
 $form.Controls.Add($applyButton)
 
 # 读取配置文件
-$config = ConvertFrom-Json (Get-Content -Path "config.json" -Raw)
+$config = ConvertFrom-Json (Get-Content -Path "$PSScriptRoot\config.json" -Raw)
 
 # 使用配置文件中的值
 $svnUrl = $config.SvnUrl
 $redshiftBasePath = $config.redshiftBasePath
+$tortoiseSVNInstaller = $config.tortoiseSVNInstaller
+$tortoiseSVNBackup = $config.tortoiseSVNBackup
 Write-Log "SVN路径为：$svnUrl"
 Write-Log "Redshift基础路径为：$redshiftBasePath"
 
@@ -66,6 +68,9 @@ $redshiftConfigs = @()
 $redshiftVersions = @()
 $dissZh = @()
 
-# 初始化和显示窗体
-New-GUI
-$form.ShowDialog()
+# 检查TortoiseSVN是否安装
+if (Try-RunSvn -tortoiseSVNBackup $tortoiseSVNBackup -packagePath $tortoiseSVNInstaller) {
+    # 初始化和显示窗体
+    New-GUI
+    $form.ShowDialog()
+}

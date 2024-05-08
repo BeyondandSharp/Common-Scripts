@@ -10,8 +10,6 @@ if (-not $isAdmin) {
     exit
 }
 
-$temp = [System.IO.Path]::GetTempPath()
-
 #获取用户文档路径
 $userDocPath = [System.Environment]::GetFolderPath("MyDocuments")
 #从json文件中读取参数
@@ -33,6 +31,22 @@ $locations = $config.locations
 $redshiftConfigs = $config.redshiftConfigs
 $redshiftVersions = $config.redshiftVersions
 $dissZh = $config.dissZh
+$path = $config.path
+
+Write-Host "检出Redshift版本中…"
+# 检查是否有svn
+$svn = Get-Command svn -ErrorAction SilentlyContinue
+if (-not $svn) {
+    $env:Path = $path
+}
+# 删除$redshiftVersion中重复的元素
+$redshiftVersions2Checkout = $redshiftVersions | Select-Object -Unique
+$redshiftVersions2Checkout = $redshiftVersions2Checkout | Where-Object {$_ -ne "不修改"}
+# 使用svn checkout redshiftVersions2Checkout中所有的版本
+foreach ($redshiftVersion in $redshiftVersions2Checkout) {
+    svn checkout "$svnUrl/$redshiftVersion" "$redshiftBasePath\$redshiftVersion" 
+}
+Write-Host "检出Redshift版本结束"
 
 $i = 0
 foreach ($redshiftVersion in $redshiftVersions) {
@@ -54,4 +68,5 @@ foreach ($redshiftVersion in $redshiftVersions) {
     $i += 1
 }
 
+Write-Host "Redshift版本切换完成！"
 pause

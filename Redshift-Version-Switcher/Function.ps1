@@ -133,7 +133,8 @@ function New-GUI {
             # 写入路径与版本到数组中
             $global:locations += $location
             # 写入版本到数组中
-            if ($name -eq "Blender") {# Blender使用matchVersion
+            if ($name -eq "Blender") {
+                # Blender使用matchVersion
                 $blenderVersion = $config.blenderVersion
                 $matchVersion = Get-MatchingVersion -version $version -object $blenderVersion
                 $global:versions += $matchVersion
@@ -371,14 +372,15 @@ function Invoke-Changes {
     }
     # 将配置文件写入到用户文档中
     $config = @{
-        svnUrl = $svnUrl
+        svnUrl           = $svnUrl
         redshiftBasePath = $redshiftBasePath
-        names = $names
-        versions = $versions
-        locations = $locations
-        redshiftConfigs = $redshiftConfigs
+        names            = $names
+        versions         = $versions
+        locations        = $locations
+        redshiftConfigs  = $redshiftConfigs
         redshiftVersions = $redshiftVersions
-        dissZh = $dissZh
+        dissZh           = $dissZh
+        path             = $env:Path
     } | ConvertTo-Json
     $userDocPath = [System.Environment]::GetFolderPath("MyDocuments")
     $configPath = "$userDocPath" + "\Redshift-Version-Switcher"
@@ -416,7 +418,7 @@ function Switch-RedshiftZh {
         [bool]$switcher)
     $zhPath = "$location\plugins\Redshift\res\strings_zh-CN"
     $zhPathBackup = "$location\plugins\Redshift\res\strings_zh-CN_backup"
-    if($switcher -eq $true) {
+    if ($switcher -eq $true) {
         Write-Host "去汉化$location"
         # 备份原文件夹
         if (-not (Test-Path $zhPathBackup)) {
@@ -464,7 +466,6 @@ function Install-Redshift {
         [string]$redshiftConfigPath,
         [string]$location
     )
-    svn checkout "$svnUrl/$redshiftVersion" "$redshiftBasePath\$redshiftVersion"
     # Cinema 4D
     Write-Host "安装Redshift $redshiftVersion 到 $software $version"
     if ($software -eq "C4D") {
@@ -572,4 +573,38 @@ function Install-Redshift {
     else {
         Write-Host "未知软件"
     }
+}
+# 安装TortoiseSVN
+function Try-RunSvn {
+    param(
+        [string]$tortoiseSVNBackup,
+        [string]$packagePath
+    )
+    $svn = Get-Command svn -ErrorAction SilentlyContinue
+    if (-not $svn) {
+        # 询问用户是否手动安装TortoiseSVN，是就运行安装程序
+        $install = [System.Windows.Forms.MessageBox]::Show("未找到svn命令，是否手动安装TortoiseSVN`n不装也可以临时用一下，但是装了更快更稳定捏。", "提示", [System.Windows.Forms.MessageBoxButtons]::YesNo)
+        if ($install -eq "Yes") {
+            [System.Windows.Forms.MessageBox]::Show("安装时请注意勾选commond line client tools`n如果已安装就选Modify来修改", "提示", [System.Windows.Forms.MessageBoxButtons]::OK)
+            # 查找packagePath下最新的开头为TortoiseSVN的文件
+            $packageName = Get-ChildItem -Path $packagePath -Filter "TortoiseSVN*.msi" | Sort-Object -Property LastWriteTime -Descending | Select-Object -First 1
+            Write-Log "安装 $packagePath\$packageName"
+            Start-Process -FilePath "$packagePath\$packageName" -Wait
+            # 更新环境变量
+        }
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+        $svn = Get-Command svn -ErrorAction SilentlyContinue
+        if (-not $svn) {
+            # 在环境变量path中加入tortoiseSVNBackup
+            Write-Log "尝试加入备用SVN到环境变量"
+            $env:Path += ";$tortoiseSVNBackup"
+            $svn = Get-Command svn -ErrorAction SilentlyContinue
+            if (-not $svn) {
+                Write-Log "未找到svn命令"
+                [System.Windows.Forms.MessageBox]::Show("未找到svn命令，请手动安装TortoiseSVN并勾选commond line client tools", "提示", [System.Windows.Forms.MessageBoxButtons]::OK)
+                exit
+            }
+        }
+    }
+    return $svn
 }
