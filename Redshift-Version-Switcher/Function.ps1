@@ -23,7 +23,7 @@ function Get-SvnRedshiftVersions {
 }
 
 # 将任意版本号缩短到指定位数的函数
-function Shorten-Version {
+function ShortenVersion {
     param (
         [string]$version,
         [int]$length
@@ -48,8 +48,8 @@ function Get-MatchingVersion {
         $lowerBound = [version]$rangeBoundaries[0]
         $upperBound = [version]$rangeBoundaries[1]
         
-        $versionLower = Shorten-Version -version $version -length $rangeBoundaries[0].Split('.').Count
-        $versionUpper = Shorten-Version -version $version -length $rangeBoundaries[1].Split('.').Count
+        $versionLower = ShortenVersion -version $version -length $rangeBoundaries[0].Split('.').Count
+        $versionUpper = ShortenVersion -version $version -length $rangeBoundaries[1].Split('.').Count
         $versionLower = [version]$versionLower
         $versionUpper = [version]$versionUpper
 
@@ -65,7 +65,7 @@ function Get-MatchingVersion {
 
 # 创建GUI的函数
 function New-GUI {
-    $keys
+    $keys = @()
     $keys_C4D = 
     Get-ChildItem 'HKLM:\SOFTWARE\Maxon' -ErrorAction SilentlyContinue | 
     Where-Object { $_.Name -match 'Cinema 4D' }
@@ -263,7 +263,10 @@ function New-GUI {
                 if (Test-Path $redshiftConfigPath) {
                     $line = Select-String -Path $redshiftConfigPath -Pattern 'REDSHIFT_COREDATAPATH = '
                     if ($line) {
-                        $currentRedshiftVersion = $line -replace '.*redshift\\', '' -replace '\\.*', ''
+                        # line用\分隔为数组
+                        $lineArrary = $line -split '\\'
+                        # 取最后一个元素
+                        $currentRedshiftVersion = $lineArrary[-1]
                         $redshiftVersionLabel.Text = "当前Redshift版本: $currentRedshiftVersion"
                         Write-Log "$name $version 的Redshift $currentRedshiftVersion 找到"
                     }
@@ -281,7 +284,7 @@ function New-GUI {
             $global:redshiftConfigs += $redshiftConfigPath
 
             $redshiftVersionLabel.AutoSize = $true
-            # 文字下移5个像素
+            # 文字下移7个像素
             $redshiftVersionLabel.Padding = New-Object System.Windows.Forms.Padding(0, 7, 0, 0)
             $tableLayoutPanel.Controls.Add($redshiftVersionLabel, 2, $tableLayoutPanel.RowCount - 1)
 
@@ -342,57 +345,6 @@ function New-GUI {
     }
 }
 
-# 刷新函数
-function Update-GUI {
-    $tableLayoutPanel.Controls.Clear()
-    $tableLayoutPanel.RowCount = 1
-    $tableLayoutPanel.RowStyles.Clear()
-    $global:locations = @()
-    $global:versions = @()
-    $global:names = @()
-    $global:redshiftConfigs = @()
-    $global:redshiftVersions = @()
-    $global:dissZh = @()
-    New-GUI
-}
-
-# “应用”按钮点击事件的函数
-function Invoke-Changes {
-    # 清空全局变量
-    $redshiftVersionsLocal = @()
-    $dissZhLocal = @()
-    # 遍历表格中的每一行
-    for ($i = 1; $i -lt $tableLayoutPanel.RowCount; $i++) {
-        $comboBox = $tableLayoutPanel.GetControlFromPosition(3, $i) # 3 是下拉框所在的列
-        $checkBox = $tableLayoutPanel.GetControlFromPosition(4, $i) # 4 是勾选框所在的列
-        $redshiftVersionsLocal += $comboBox.SelectedItem
-        $dissZhLocal += $checkBox.Checked
-        $global:redshiftVersions = $redshiftVersionsLocal
-        $global:dissZh = $dissZhLocal
-    }
-    # 将配置文件写入到用户文档中
-    $config = @{
-        svnUrl           = $svnUrl
-        redshiftBasePath = $redshiftBasePath
-        names            = $names
-        versions         = $versions
-        locations        = $locations
-        redshiftConfigs  = $redshiftConfigs
-        redshiftVersions = $redshiftVersions
-        dissZh           = $dissZh
-        path             = $env:Path
-    } | ConvertTo-Json
-    $userDocPath = [System.Environment]::GetFolderPath("MyDocuments")
-    $configPath = "$userDocPath" + "\Redshift-Version-Switcher"
-    if (-not (Test-Path $configPath)) {
-        New-Item -ItemType Directory -Path $configPath
-    }
-    $config | Set-Content -Path "$configPath\config.json"
-    Write-Log "配置文件写入到 $configPath\config.json"
-    # 启动安装脚本
-    . "$PSScriptRoot\Install-Redshift.ps1"
-}
-
 # 对比参考文件夹和目标文件夹的文件
 function Compare-Folders {
     param(
@@ -403,12 +355,14 @@ function Compare-Folders {
     $destinationPathFiles = Get-ChildItem -Recurse -Path $destinationPath
     $differences = Compare-Object $sourcePathFiles $destinationPathFiles -Property Name, Length
     # 输出destinationPath中不存在的文件
+    $i = 0
     foreach ($difference in $differences) {
         if ($difference.SideIndicator -eq "<=") {
             Write-Host "文件 $($difference.Name) 不存在"
+            $i++
         }
     }
-    return $differences.Count
+    return $i
 }
 
 # 汉化切换
@@ -423,24 +377,34 @@ function Switch-RedshiftZh {
         # 备份原文件夹
         if (-not (Test-Path $zhPathBackup)) {
             Copy-Item -Recurse -Force $zhPath $zhPathBackup
+            if (Test-Path $zhPathBackup) {
+                # 删除原文件夹
+                Remove-Item -Recurse -Force $zhPath
+                if (-not (Test-Path $zhPath)) {
+                    # 复制英文文件夹为中文文件夹
+                    Copy-Item -Recurse -Force "$location\plugins\Redshift\res\strings_en-US" $zhPath
+                }                
+            }
         }
-        if (Test-Path $zhPathBackup) {
-            # 删除原文件夹
-            Remove-Item -Recurse -Force $zhPath
-        }
-        # 复制英文文件夹为中文文件夹
-        Copy-Item -Recurse -Force "$location\plugins\Redshift\res\strings_en-US" $zhPath
+        else {
+            Write-Host "已经去汉化了的说"
+        }        
     }
     else {
         Write-Host "恢复汉化$location"
         # 恢复原文件夹
-        Copy-Item -Recurse -Force $zhPathBackup $zhPath
-        Remove-Item -Recurse -Force $zhPathBackup
+        if (Test-Path $zhPathBackup){
+            Copy-Item -Recurse -Force $zhPathBackup $zhPath
+            Remove-Item -Recurse -Force $zhPathBackup
+        }
+        else {
+            Write-Host "已经是汉化了的说"
+        }
     }
 }
 
 # 查询content中是否有匹配的字符串，没有就添加该字符串
-function FindAdd-Content {
+function Add-ContentNotFind {
     param(
         [string[]]$contentArrary,
         [string]$pattern,
@@ -478,16 +442,25 @@ function Install-Redshift {
             New-Item -ItemType Directory -Path "$location\plugins"
         }
         Set-Location "$redshiftBasePath\$redshiftVersion\Plugins\C4D"
-        #运行脚本bat
-        .\install_c4d.bat "$version" "$location\plugins" -Wait
+        # 删除$location\plugins\Redshift文件夹
+        Write-Host "删除 $location\plugins\Redshift"
+        Remove-Item -Recurse -Force "$location\plugins\Redshift"
+        #管理员身份运行脚本bat
+        .\install_c4d.bat "$version" "$location\plugins"
         #写入新的pathconfig.xml
-        $pathConfig = "`"<path name=`"REDSHIFT_COREDATAPATH`" value=`"$redshiftBasePath\$redshiftVersion`" />`""
+        $pathConfig = "<path name=`"REDSHIFT_COREDATAPATH`" value=`"$redshiftBasePath\$redshiftVersion`" />"
         Write-host "写入新的$redshiftConfigPath"
         $pathConfig | Set-Content "$location\plugins\Redshift\pathconfig.xml"
         # 验证安装是否成功
         $sourcePath = "$redshiftBasePath\$redshiftVersion\Plugins\C4D\$version\Redshift"
         $destinationPath = "$location\plugins\Redshift"
-        Compare-Folders -sourcePath $sourcePath -destinationPath $destinationPath
+        $differences = Compare-Folders -sourcePath $sourcePath -destinationPath $destinationPath
+        if ($differences -eq 0) {
+            Write-Host "验证通过，没问题哒"
+        }
+        else {
+            Write-Host "验证失败，有问题哒"
+        }
     }
     # 3dsMax
     elseif ($software -eq "3dsMax") {
@@ -548,11 +521,11 @@ function Install-Redshift {
             $contentArrary += $addContent
         }
         # 查询并添加其他行
-        $contentArrary = FindAdd-Content -content $contentArrary -addContent "HOUDINI_DSO_ERROR = 2"
-        $contentArrary = FindAdd-Content -content $contentArrary -addContent "REDSHIFT_LOCALDATAPATH = `$REDSHIFT_COREDATAPATH"
-        $contentArrary = FindAdd-Content -content $contentArrary -addContent "PATH = `$REDSHIFT_LOCALDATAPATH/bin;`$PATH"
-        $contentArrary = FindAdd-Content -content $contentArrary -addContent "HOUDINI_PATH = `$HOUDINI_PATH;`$REDSHIFT_LOCALDATAPATH/Plugins/Houdini/`${HOUDINI_VERSION}"
-        $contentArrary = FindAdd-Content -content $contentArrary -addContent "PXR_PLUGINPATH_NAME = `$REDSHIFT_LOCALDATAPATH/Plugins/Solaris/`${HOUDINI_VERSION}"
+        $contentArrary = Add-ContentNotFind -content $contentArrary -addContent "HOUDINI_DSO_ERROR = 2"
+        $contentArrary = Add-ContentNotFind -content $contentArrary -addContent "REDSHIFT_LOCALDATAPATH = `$REDSHIFT_COREDATAPATH"
+        $contentArrary = Add-ContentNotFind -content $contentArrary -addContent "PATH = `$REDSHIFT_LOCALDATAPATH/bin;`$PATH"
+        $contentArrary = Add-ContentNotFind -content $contentArrary -addContent "HOUDINI_PATH = `$HOUDINI_PATH;`$REDSHIFT_LOCALDATAPATH/Plugins/Houdini/`${HOUDINI_VERSION}"
+        $contentArrary = Add-ContentNotFind -content $contentArrary -addContent "PXR_PLUGINPATH_NAME = `$REDSHIFT_LOCALDATAPATH/Plugins/Solaris/`${HOUDINI_VERSION}"
         # 最后一个元素若为空就删除
         if ($contentArrary[-1] -eq "") {
             $contentArrary = $contentArrary[0..($contentArrary.Length - 2)]
@@ -575,7 +548,7 @@ function Install-Redshift {
     }
 }
 # 安装TortoiseSVN
-function Try-RunSvn {
+function Invoke-SvnCommand {
     param(
         [string]$tortoiseSVNBackup,
         [string]$packagePath

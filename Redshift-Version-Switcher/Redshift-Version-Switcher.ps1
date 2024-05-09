@@ -1,5 +1,57 @@
 . "$PSScriptRoot\Function.ps1"
 
+# 刷新函数
+function Update-GUI {
+    $tableLayoutPanel.Controls.Clear()
+    $tableLayoutPanel.RowCount = 1
+    $tableLayoutPanel.RowStyles.Clear()
+    $global:locations = @()
+    $global:versions = @()
+    $global:names = @()
+    $global:redshiftConfigs = @()
+    $global:redshiftVersions = @()
+    $global:dissZh = @()
+    New-GUI
+}
+
+# “应用”按钮点击事件的函数
+function Invoke-Changes {
+    # 清空全局变量
+    $redshiftVersionsLocal = @()
+    $dissZhLocal = @()
+    # 遍历表格中的每一行
+    for ($i = 1; $i -lt $tableLayoutPanel.RowCount; $i++) {
+        $comboBox = $tableLayoutPanel.GetControlFromPosition(3, $i) # 3 是下拉框所在的列
+        $checkBox = $tableLayoutPanel.GetControlFromPosition(4, $i) # 4 是勾选框所在的列
+        $redshiftVersionsLocal += $comboBox.SelectedItem
+        $dissZhLocal += $checkBox.Checked
+        $global:redshiftVersions = $redshiftVersionsLocal
+        $global:dissZh = $dissZhLocal
+    }
+
+    # 将配置文件写入到用户文档中
+    $config = @{
+        svnUrl           = $svnUrl
+        redshiftBasePath = $redshiftBasePath
+        names            = $names
+        versions         = $versions
+        locations        = $locations
+        redshiftConfigs  = $redshiftConfigs
+        redshiftVersions = $redshiftVersions
+        dissZh           = $dissZh
+        path             = $env:Path
+    } | ConvertTo-Json
+    $userDocPath = [System.Environment]::GetFolderPath("MyDocuments")
+    $configPath = "$userDocPath" + "\Redshift-Version-Switcher"
+    if (-not (Test-Path $configPath)) {
+        New-Item -ItemType Directory -Path $configPath
+    }
+    $config | Set-Content -Path "$configPath\config.json"
+    Write-Log "配置文件写入到 $configPath\config.json"
+    # 启动安装脚本
+    . "$PSScriptRoot\Install-Redshift.bat"
+}
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Xml.Linq
 
@@ -69,7 +121,7 @@ $redshiftVersions = @()
 $dissZh = @()
 
 # 检查TortoiseSVN是否安装
-if (Try-RunSvn -tortoiseSVNBackup $tortoiseSVNBackup -packagePath $tortoiseSVNInstaller) {
+if (Invoke-SvnCommand -tortoiseSVNBackup $tortoiseSVNBackup -packagePath $tortoiseSVNInstaller) {
     # 初始化和显示窗体
     New-GUI
     $form.ShowDialog()
