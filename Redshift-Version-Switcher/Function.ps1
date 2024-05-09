@@ -32,7 +32,7 @@ function ShortenVersion {
     $versionArray = $version.Split('.')
     # 从数组中取出指定长度的元素
     $versionShort = $versionArray[0..($length - 1)] -join '.'
-    write-host "缩短为 $length"
+    write-host "$version 缩短为 $versionShort"
     return $versionShort
 }
 
@@ -63,9 +63,46 @@ function Get-MatchingVersion {
     return $result
 }
 
+# 将一个数组合并到另一个数组的函数，如果数组为空则不合并
+function Merge-Array {
+    param (
+        [array]$array1,
+        [array]$array2
+    )
+    # 遍历array2并添加到array1
+    foreach ($item in $array2) {
+        $array1 += $item
+    }
+    return $array1
+}
+
+# 参考数组2，如果其中有空值，则将数组1的对应位置的值替换为空值
+function Set-EmptyValue {
+    param (
+        [array]$array1,
+        [array]$array2
+    )
+    $i = 0
+    foreach ($item in $array2) {
+        if ($item -eq "") {
+            $array1[$i] = ""
+        }
+        $i++
+    }
+    return $array1
+}
+
 # 创建GUI的函数
 function New-GUI {
     $keys = @()
+    $keys_C4D = @()
+    $keys_3dsMax = @()
+    $keys_Blender = @()
+    $keys_Houdini = @()
+    $keys_Maya = @()
+    $keysEmpty = @()
+    $namesEmpty = @()
+
     $keys_C4D = 
     Get-ChildItem 'HKLM:\SOFTWARE\Maxon' -ErrorAction SilentlyContinue | 
     Where-Object { $_.Name -match 'Cinema 4D' }
@@ -76,8 +113,8 @@ function New-GUI {
     $names_3dsMax = @("3dsMax") * $keys_3dsMax.Length
     $keys_Blender = 
     Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' -Recurse | 
-    Get-ItemProperty | 
-    Where-Object { $_.DisplayName -eq 'Blender' }
+    Where-Object { $_.Property -contains 'DisplayName' } | 
+    Where-Object { $_.GetValue('DisplayName') -match 'blender' }
     $names_Blender = @("Blender") * $keys_Blender.Length
     $keys_Houdini = 
     Get-ChildItem -Path 'HKLM:\SOFTWARE\Side Effects Software' -Recurse | 
@@ -88,9 +125,36 @@ function New-GUI {
     Where-Object { $_.Property -contains 'UpdateVersion' }
     $names_Maya = @("Maya") * $keys_Maya.Length
 
-    # 合并所有的keys和names
-    $keys = $keys_C4D + $keys_3dsMax + $keys_Blender + $keys_Houdini + $keys_Maya
-    $names = $names_C4D + $names_3dsMax + $names_Blender + $names_Houdini + $names_Maya
+    #$keys = $keys_C4D + $keys_3dsMax + $keys_Blender + $keys_Houdini + $keys_Maya
+    #$names = $names_C4D + $names_3dsMax + $names_Blender + $names_Houdini + $names_Maya
+    
+    $namesEmpty = Merge-Array -array1 $namesEmpty -array2 $names_C4D
+    $namesEmpty = Merge-Array -array1 $namesEmpty -array2 $names_3dsMax
+    $namesEmpty = Merge-Array -array1 $namesEmpty -array2 $names_Blender
+    $namesEmpty = Merge-Array -array1 $namesEmpty -array2 $names_Houdini
+    $namesEmpty = Merge-Array -array1 $namesEmpty -array2 $names_Maya
+
+    $keysEmpty = Merge-Array -array1 $keysEmpty -array2 $keys_C4D
+    $keysEmpty = Merge-Array -array1 $keysEmpty -array2 $keys_3dsMax
+    $keysEmpty = Merge-Array -array1 $keysEmpty -array2 $keys_Blender
+    $keysEmpty = Merge-Array -array1 $keysEmpty -array2 $keys_Houdini
+    $keysEmpty = Merge-Array -array1 $keysEmpty -array2 $keys_Maya
+
+    $keys = Set-EmptyValue -array1 $keysEmpty -array2 $namesEmpty
+    $names = Set-EmptyValue -array1 $namesEmpty -array2 $keysEmpty
+
+    $keys = $keys | Where-Object { $_ -ne "" }
+    $names = $names | Where-Object { $_ -ne "" }
+    
+    Write-Log "找到 $($keys.Length)"
+    foreach ($key in $keys) {
+        Write-Log $key
+    }
+    Write-Log "名称 $($names.Length)"
+    foreach ($name in $names) {
+        Write-Log $name
+    }
+
     $global:names = $names
     if ($keys) {
         $i = 0
@@ -298,7 +362,10 @@ function New-GUI {
             foreach ($redshiftVersion in $redshiftVersions) {
                 $testVersion = $version
                 if ($name -eq "C4D") {
-                    $testVersion = if ($version.StartsWith("R")) { $version } else { "R$version" }
+                    #如果version开头没有R，则添加
+                    if ($version -notlike "R*") {
+                        $version = "R$version"
+                    }                    
                 }
                 elseif ($name -eq "Blender") {
                     $blenderVersion = $config.blenderVersion
