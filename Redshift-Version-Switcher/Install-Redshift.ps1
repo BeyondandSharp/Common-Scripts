@@ -69,4 +69,6 @@ foreach ($redshiftVersion in $redshiftVersions) {
 }
 
 Write-Host "Redshift版本切换完成！"
-pause
+# 等待5s，若不按下任何按键则自动关闭
+Write-Host "5s后自动关闭"
+Start-Sleep -Seconds 5
