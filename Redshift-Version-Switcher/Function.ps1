@@ -275,8 +275,9 @@ function New-GUI {
                 $redshiftConfigPath = "$location$versionShort\scripts\addons\redshift\__init__.py"
                 if (Test-Path $redshiftConfigPath) {
                     $pathContent = Get-Content $redshiftConfigPath -Raw
-                    if ($pathContent -match '"version": \((\d+), (\d+), (\d+)\)') {
-                        $currentRedshiftVersion = $matches[1..3] -join '.'
+                    $pattern = "os\.environ\['REDSHIFT_COREDATAPATH'\] = ""C:/ProgramData/redshift/([0-9]+\.[0-9]+\.[0-9]+)"""
+                    if ($pathContent -match $pattern) {
+                        $currentRedshiftVersion = $matches[1]
                         $redshiftVersionLabel.Text = "当前Redshift版本: $currentRedshiftVersion"
                         Write-Log "$name $version 的Redshift $currentRedshiftVersion 找到"
                     }
