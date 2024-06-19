@@ -103,28 +103,58 @@ function New-GUI {
     $keysEmpty = @()
     $namesEmpty = @()
 
-    $keys_C4D = 
-    Get-ChildItem 'HKLM:\SOFTWARE\Maxon' -ErrorAction SilentlyContinue | 
-    Where-Object { $_.Name -match 'Cinema 4D' }
-    $names_C4D = @("C4D") * $keys_C4D.Length
-    $keys_3dsMax = 
-    Get-ChildItem -Path 'HKLM:\SOFTWARE\Autodesk\3dsMax' -Recurse | 
-    Where-Object { $_.Property -contains 'ProductName' }
-    $names_3dsMax = @("3dsMax") * $keys_3dsMax.Length
-    $keys_Blender = 
-    Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' -Recurse | 
-    Where-Object { $_.Property -contains 'DisplayName' } | 
-    Where-Object { $_.GetValue('DisplayName') -match 'blender' }
-    $names_Blender = @("Blender") * $keys_Blender.Length
-    $keys_Houdini = 
-    Get-ChildItem -Path 'HKLM:\SOFTWARE\Side Effects Software' -Recurse | 
-    Where-Object { $_.Property -contains 'Version' }
-    $names_Houdini = @("Houdini") * $keys_Houdini.Length
-    $keys_Maya = 
-    Get-ChildItem -Path 'HKLM:\SOFTWARE\Autodesk\Maya' -Recurse | 
-    Where-Object { $_.Property -contains 'UpdateVersion' }
-    $names_Maya = @("Maya") * $keys_Maya.Length
-
+    # C4D
+    if (Test-Path 'HKLM:\SOFTWARE\Maxon') {
+        $keys_C4D = 
+        Get-ChildItem 'HKLM:\SOFTWARE\Maxon' -ErrorAction SilentlyContinue | 
+        Where-Object { $_.Name -match 'Cinema 4D' }
+        $names_C4D = @("C4D") * $keys_C4D.Length
+    }
+    else {
+        Write-Log "Î´ÕÒµ½×¢²á±íHKLM:\SOFTWARE\Maxon"
+    }
+    # 3dsMax
+    if (Test-Path 'HKLM:\SOFTWARE\Autodesk\3dsMax') {
+        $keys_3dsMax = 
+        Get-ChildItem -Path 'HKLM:\SOFTWARE\Autodesk\3dsMax' -Recurse | 
+        Where-Object { $_.Property -contains 'ProductName' }
+        $names_3dsMax = @("3dsMax") * $keys_3dsMax.Length
+    }
+    else {
+        Write-Log "Î´ÕÒµ½×¢²á±íHKLM:\SOFTWARE\Autodesk\3dsMax"
+    }
+    # Blender
+    if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall') {
+        $keys_Blender = 
+        Get-ChildItem -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall' -Recurse | 
+        Where-Object { $_.Property -contains 'DisplayName' } | 
+        Where-Object { $_.GetValue('DisplayName') -match 'blender' }
+        $names_Blender = @("Blender") * $keys_Blender.Length
+    }
+    else {
+        Write-Log "Î´ÕÒµ½×¢²á±íHKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"
+    }
+    # Houdini
+    if (Test-Path 'HKLM:\SOFTWARE\Side Effects Software') {
+        $keys_Houdini = 
+        Get-ChildItem -Path 'HKLM:\SOFTWARE\Side Effects Software' -Recurse | 
+        Where-Object { $_.Property -contains 'Version' }
+        $names_Houdini = @("Houdini") * $keys_Houdini.Length
+    }
+    else {
+        Write-Log "Î´ÕÒµ½×¢²á±íHKLM:\SOFTWARE\Side Effects Software"
+    }
+    # Maya
+    if (Test-Path 'HKLM:\SOFTWARE\Autodesk\Maya') {
+        $keys_Maya = 
+        Get-ChildItem -Path 'HKLM:\SOFTWARE\Autodesk\Maya' -Recurse | 
+        Where-Object { $_.Property -contains 'UpdateVersion' }
+        $names_Maya = @("Maya") * $keys_Maya.Length
+    }
+    else {
+        Write-Log "Î´ÕÒµ½×¢²á±íHKLM:\SOFTWARE\Autodesk\Maya"
+    }
+    
     #$keys = $keys_C4D + $keys_3dsMax + $keys_Blender + $keys_Houdini + $keys_Maya
     #$names = $names_C4D + $names_3dsMax + $names_Blender + $names_Houdini + $names_Maya
     
