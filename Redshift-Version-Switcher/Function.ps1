@@ -190,23 +190,6 @@ function New-GUI {
         $i = 0
         foreach ($key in $keys) {
             $name = $names[$i]
-            # 获取版本号
-            if ($name -eq "C4D" -or $name -eq "Houdini") {
-                $version = (Get-ItemProperty $key.PSPath).Version
-            }
-            elseif ($name -eq "3dsMax") {
-                $version_ = (Get-ItemProperty $key.PSPath).ProductName -split " "
-                $version = $version_[-1]
-            }
-            elseif ($name -eq "Blender") {
-                $version = (Get-ItemProperty $key.PSPath).DisplayVersion
-            }
-            elseif ($name -eq "Maya") {
-                $version = (Get-ItemProperty $key.PSPath).UpdateVersion
-            }
-            else {
-                $version = (Get-ItemProperty $key.PSPath).Version
-            }
             # 获取安装路径
             if ($name -eq "C4D" -or $name -eq "3dsMax") {
                 $location = (Get-ItemProperty $key.PSPath).Location
@@ -223,6 +206,38 @@ function New-GUI {
             }
             else {
                 $location = (Get-ItemProperty $key.PSPath).Location
+            }
+            # 获取版本号
+            if ($name -eq "C4D" -or $name -eq "Houdini") {
+                $version = (Get-ItemProperty $key.PSPath).Version
+            }
+            elseif ($name -eq "3dsMax") {
+                $version_ = (Get-ItemProperty $key.PSPath).ProductName -split " "
+                $version = $version_[-1]
+            }
+            elseif ($name -eq "Blender") {
+                $version_ = (Get-ItemProperty $key.PSPath).DisplayVersion
+                # 如果DisplayVersion不存在则读取安装路径下blender.exe中的版本号
+                if (-not $version_) {
+                    $version = (Get-Item "$location\blender.exe").VersionInfo.FileVersion
+                }
+                else {
+                    $version = $version_
+                }
+                # 将$version转换为版本号
+                $version = [System.Version]::Parse($version)
+                # 查看其中有没有修订号，没有则用0补全
+                if ($version.Build -eq -1) {
+                    $version = [version]("$version.0")
+                }
+                # 再转换回字符串
+                $version = $version.ToString()
+            }
+            elseif ($name -eq "Maya") {
+                $version = (Get-ItemProperty $key.PSPath).UpdateVersion
+            }
+            else {
+                $version = (Get-ItemProperty $key.PSPath).Version
             }
             # 写入路径与版本到数组中
             $global:locations += $location
