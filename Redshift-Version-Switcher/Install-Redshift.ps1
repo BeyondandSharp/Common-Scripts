@@ -71,7 +71,7 @@ foreach ($redshiftVersion in $redshiftVersions) {
 Write-Host "Redshift版本切换完成！"
 # 等待5s，若不按下任何按键则自动关闭
 $random = Get-Random -Minimum 0 -Maximum 100
-if ($random -gt 90) {
+if ($random -gt 10) {
     Write-Host "5s后自动关闭"
 }
 else {
