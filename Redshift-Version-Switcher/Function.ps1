@@ -409,8 +409,8 @@ function New-GUI {
                 $testVersion = $version
                 if ($name -eq "C4D") {
                     #如果version开头没有R，则添加
-                    if ($version -notlike "R*") {
-                        $version = "R$version"
+                    if ($testVersion -notlike "R*") {
+                        $testVersion = "R$testVersion"
                     }                    
                 }
                 elseif ($name -eq "Blender") {
@@ -419,6 +419,7 @@ function New-GUI {
                 }
                 if ($null -ne $testVersion) {
                     if (svn list $svnUrl/$redshiftVersion/Plugins/$name/$testVersion) {
+                        Write-Host "找到 $svnUrl/$redshiftVersion/Plugins/$name/$testVersion"
                         $comboBox.Items.Add($redshiftVersion)
                     }
                 }
