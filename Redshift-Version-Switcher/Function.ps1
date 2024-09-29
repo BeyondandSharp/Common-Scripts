@@ -595,7 +595,9 @@ function Install-Redshift {
         # 将location转换位斜杠分隔的数组
         $locationArray = $location.Split("\")
         $versionShort = [regex]::Match($locationArray[-1], "\d+\.\d+")
-        $addonsPath = "$location\$($versionShort.Value)\scripts\addons"
+        #$addonsPath = "$location\$($versionShort.Value)\scripts\addons"
+        # 新版Blender好像不支持在安装目录下安装插件
+        $addonsPath = "$env:APPDATA\Blender Foundation\Blender\$($versionShort.Value)\scripts\addons"
         # 删除旧版本
         Write-Host "删除旧版本"
         Remove-Item -Recurse -Force "$addonsPath\redshift"
