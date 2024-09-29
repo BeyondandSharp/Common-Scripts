@@ -208,7 +208,12 @@ function New-GUI {
                 $location = (Get-ItemProperty $key.PSPath).Location
             }
             # ªÒ»°∞Ê±æ∫≈
-            if ($name -eq "C4D" -or $name -eq "Houdini") {
+            if ($name -eq "C4D") {
+                $version = (Get-ItemProperty $key.PSPath).Version
+                # Àı∂Ãversion
+                $version = ShortenVersion -version $version -length 1
+            }
+            elseif ($name -eq "Houdini") {
                 $version = (Get-ItemProperty $key.PSPath).Version
             }
             elseif ($name -eq "3dsMax") {

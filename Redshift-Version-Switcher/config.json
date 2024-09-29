@@ -7,7 +7,7 @@
         "3.1 - 3.3": "3.1.0",
         "3.4.1 - 3.5": "3.4.1",
 		"4.0 - 4.0": "4.0.0",
-		"4.1 - 4.1": "4.1.0"
+		"4.1 - 4.2": "4.1.0"
     },
     "tortoiseSVNInstaller": "\\\\192.168.0.100\\mcs\\Working_Group\\Installation_package\\TortoiseSVN",
     "tortoiseSVNBackup": "\\\\192.168.0.100\\mcs\\Working_Group\\Installation_package\\TortoiseSVN\\Backup\\bin"
