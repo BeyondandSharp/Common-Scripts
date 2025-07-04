@@ -1,5 +1,5 @@
 @chcp 65001
-@ECHO 辣鸡清理脚本2.1.1
+@ECHO 辣鸡清理脚本2.2.0
 @ECHO 编写者:FCH
 @ECHO.
 
@@ -14,9 +14,9 @@ cd /d "%~dp0"
 :_choice
 @ECHO ===========================请选择要清理的文件===========================
 @ECHO.
-@set /p _choice_=0、退出  1、Adobe全家桶的缓存与临时文件  2、着色器缓存（D3D与Nvidia）  3、UE缓存  4、Unity缓存  5、Maxon全家桶的缓存，临时文件与CrashDump  6、Maya缓存  7、其他  8、以上所有呱啊啊啊啊:
+@set /p _choice_=0、以下所有呱啊啊啊啊  1、Adobe全家桶的缓存与临时文件  2、着色器缓存（D3D与Nvidia）  3、UE缓存  4、Unity缓存  5、Maxon全家桶的缓存，临时文件与CrashDump  6、Maya缓存  7、uv缓存 8、其他  9、退出:
 
-@if %_choice_%==0 @echo 清理已被用户取消 & @pause & exit
+@if %_choice_%==9 @echo 清理已被用户取消 & @pause & exit
 
 @set _local_=%UserProfile%\AppData\Local
 @set _tmpc_=%UserProfile%\AppData\Local\Temp
@@ -30,14 +30,16 @@ cd /d "%~dp0"
 @if %_choice_%==4 @call:_unityClean & @pause & @goto _choice
 @if %_choice_%==5 @call:_maxonClean & @pause & @goto _choice
 @if %_choice_%==6 @call:_mayaClean & @pause & @goto _choice
-@if %_choice_%==7 @call:_otherClean & @pause & @goto _choice
-@if %_choice_%==8 (
+@if %_choice_%==7 @call:_uvClean & @pause & @goto _choice
+@if %_choice_%==8 @call:_otherClean & @pause & @goto _choice
+@if %_choice_%==0 (
 @call:_adobeClean
 @call:_shaderClean
 @call:_UEClean
 @call:_unityClean
 @call:_maxonClean
 @call:_mayaClean
+@call:_uvClean
 @call:_otherClean
 @pause & @goto _choice
 )
@@ -148,6 +150,11 @@ for /d %%i in (maya3dPaint_*) do rd /s/q "%%i"
 for /d %%i in (mayaDiskCache_*) do rd /s/q "%%i"
 for /d %%i in (mayaGreasePencil_*) do rd /s/q "%%i"
 @goto:eof
+
+:_uvClean
+@echo 开始清理uv缓存
+cd %_local_%
+rd /s/q "uv\cache"
 
 :_otherClean
 @echo 开始清理其他
